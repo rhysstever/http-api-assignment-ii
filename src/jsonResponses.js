@@ -1,94 +1,80 @@
-const respond = (request, response, status, content, type) => {
-	response.writeHead(status, { 'Content-Type': type });
-	response.write(content);
-	response.end();
-};
-  
-const getStatusCode = (request, response, status, contentObj) => {  
-	const jsonString = JSON.stringify(contentObj);
-	return respond(request, response, status, jsonString, 'application/json');
-};
-  
-const success = (request, response) => {
-	const responseObj = {
-		message: 'This is a successful response.',
-	};
-  
-	getStatusCode(request, response, 200, responseObj);
-};
-  
- const badRequest = (request, response, params) => {
-	const responseObj = {
-		message: 'This request has the required parameters.',
-	};
-  
-	if (!params.valid || params.valid !== 'true') {
-	  responseObj.message = 'Missing valid query parameter set to true.';
-	  responseObj.id = 'badRequest';
-  
-	  return getStatusCode(request, response, 400, responseObj);
-	}
-  
-	return getStatusCode(request, response, 200, responseObj);
-};
-  
-const unauthorized = (request, response, params) => {
-	const responseObj = {
-		message: 'You have successfully viewed the content.',
-	};
-  
-	if (!params.loggedIn || params.loggedIn !== 'yes') {
-		responseObj.message = 'Missing loggedIn query parameter set to yes.';
-		responseObj.id = 'unauthorized';
-  
-		return getStatusCode(request, response, 401, responseObj);
-	}
-  
-	return getStatusCode(request, response, 200, responseObj);
-};
-  
-const forbidden = (request, response) => {
-	const responseObj = {
-		message: 'You do not have access to this content.',
-		id: 'forbidden',
-	};
-  
-	return getStatusCode(request, response, 403, responseObj);
-};
-  
-const internal = (request, response) => {
-	const responseObj = {
-		message: 'Internal Server Error. Something went wrong.',
-		id: 'internalError',
-	};
-  
-	getStatusCode(request, response, 500, responseObj);
-};
-  
-const notImplemented = (request, response) => {
-	const responseObj = {
-		message: 'A get request for this page has not been implemented yet. Check again later for updated content.',
-		id: 'internalError',
-	};
-  
-	getStatusCode(request, response, 501, responseObj);
-};
-  
-const notFound = (request, response) => {
-	const responseObj = {
-		message: 'The page you are looking for was not found.',
-		id: 'notFound',
-	};
-  
-	getStatusCode(request, response, 404, responseObj);
+const users = {};
+
+const respondJSON = (request, response, status, object) => {
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+
+  response.writeHead(status, headers);
+  response.write(JSON.stringify(object));
+  response.end();
 };
 
+const respondJSONMeta = (request, response, status) => {
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+
+  response.writeHead(status, headers);
+  response.end();
+};
+
+const getUsers = (request, response) => {
+  const responseJSON = {
+    users,
+  };
+
+  return respondJSON(request, response, 200, responseJSON);
+};
+
+const getUsersMeta = (request, response) => respondJSONMeta(request, response, 200);
+
+const updateUser = (request, response, body) => {
+  const responseJSON = {
+    message: 'Name and age are both required',
+  };
+
+  if (!body.name || !body.age) {
+    responseJSON.id = 'missingParams';
+    return respondJSON(request, response, 400, responseJSON);
+  }
+
+  let responseCode = 201;
+
+  if (users[body.name]) {
+    responseCode = 204;
+  } else {
+    users[body.name] = {};
+  }
+
+  users[body.name].name = body.name;
+  users[body.name].age = body.age;
+
+  if (responseCode === 201) {
+    responseJSON.message = 'Created Successfully!';
+    return respondJSON(request, response, responseCode, responseJSON);
+  }
+
+  return respondJSONMeta(request, response, responseCode);
+};
+
+const notFound = (request, response) => {
+  const responseObj = {
+    message: 'The page you are looking for was not found.',
+    id: 'notFound',
+  };
+
+  return respondJSON(request, response, 404, responseObj);
+};
+
+const notFoundMeta = (request, response) => respondJSONMeta(request, response, 404);
+
 module.exports = {
-	success,
-	badRequest,
-	unauthorized,
-	forbidden,
-	internal,
-	notImplemented,
-	notFound,
+  respondJSON,
+  respondJSONMeta,
+  getUsers,
+  getUsersMeta,
+  updateUser,
+  notFound,
+  notFoundMeta,
 };
